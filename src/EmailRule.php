@@ -11,13 +11,24 @@ class EmailRule
     protected $client;
     protected $key;
     protected $log;
-    protected $url = 'https://api.mailgun.net/v3/address/private/validate';
+    protected $url;
+    protected $verifySsl;
 
-    public function __construct(Client $client, LoggerInterface $log, $key = '')
+    public function __construct(Client $client, LoggerInterface $log, $options = [])
     {
+        $defaults = [
+            'key' => '',
+            'endpoint' => 'https://api.mailgun.net/v3/address/private/validate',
+            'verifySsl' => 'true'
+        ];
+
+        $options += $defaults;
+
         $this->client = $client;
-        $this->key = $key;
+        $this->key = $options['key'];
         $this->log = $log;
+        $this->url = $options['endpoint'];
+        $this->verifySsl = $options['verifySsl'];
     }
 
     public function validate($attribute, $value, $parameters)
@@ -59,7 +70,7 @@ class EmailRule
 
     protected function getMailgunValidation($email, $mailboxVerification = false)
     {
-        $response = $this->client->get($this->url, [
+        $options = [
             'query' => [
                 'address'              => $email,
                 'mailbox_verification' => $mailboxVerification,
@@ -68,7 +79,13 @@ class EmailRule
                 'api',
                 $this->key
             ]
-        ]);
+        ];
+
+        if (!$this->verifySsl) {
+            $options += ['verify' => false];
+        }
+
+        $response = $this->client->get($this->url, $options);
 
         if (!$mailgun = json_decode($response->getBody())) {
             throw new Exception('Failed to decode Mailgun response');

@@ -24,7 +24,17 @@ class ServiceProvider extends BaseServiceProvider
     public function register()
     {
         $this->app->bind(EmailRule::class, function ($app) {
-            return new EmailRule(new Client(), $app['log'], config('mailgun-email-validation.key'));
+            $options = [
+                'key' => config('mailgun-email-validation.key'),
+                'endpoint' => config('mailgun-email-validation.endpoint'),
+                'verifySsl' => config('mailgun-email-validation.verifySsl'),
+            ];
+
+            return new EmailRule(
+                new Client(),
+                $app['log'],
+                $options
+            );
         });
     }
 }
